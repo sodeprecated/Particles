@@ -59,7 +59,7 @@ function fps(){
 
 const Points = {};
 const Canvas = {};
-const MaxPoints = 100;
+let MaxPoints = 100;
 const Speed = 100;
 const EstimatedFPS = 30;
 const MaxDist = 160;
@@ -76,6 +76,7 @@ function createCanvas(_width,_height){
     Canvas.canvas.width = _width;
     Canvas.canvas.height = _height;
     Canvas.context = Canvas.canvas.getContext("2d");
+    MaxPoints = Math.floor(Canvas.width*Canvas.height/11000);
 }
 
 
@@ -203,6 +204,7 @@ function draw(){
 window.onresize = () =>{
     resizeCanvas(window.innerWidth,window.innerHeight);
     Canvas.canvas.style.backgroundImage = `url(https://picsum.photos/${Canvas.width}/${Canvas.height})`;
+    MaxPoints = Math.floor(Canvas.width*Canvas.height/11000);
 }
 
 
