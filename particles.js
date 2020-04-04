@@ -155,17 +155,7 @@ function draw(){
         point = Points[i];
         if(performance.now() - point.time > 1000 && (point.x > Canvas.width+10 || point.x < -10 || point.y > Canvas.height + 10 || point.y < -10)){
             idToDelete.push(i);
-            
         }
-
-        fill(255,255,255,255);
-        strokeWidth(0);
-        //strokeWidth(point.radius*1);
-        circle(point.x,point.y,point.radius);
-
- 
-        point.x += Math.cos(point.angle)*Time.deltaTime*point.speed;
-        point.y -= Math.sin(point.angle)*Time.deltaTime*point.speed;
 
         let k = false;
         for(let j in Points){
@@ -185,6 +175,11 @@ function draw(){
             line(a.x,a.y,point.x,point.y);
         }
 
+        fill(255,255,255,255);
+        strokeWidth(0);
+        //strokeWidth(point.radius*1);
+        circle(point.x,point.y,point.radius);
+
 
     }
 
@@ -195,6 +190,12 @@ function draw(){
 
     for(let i = Object.keys(Points).length; i < MaxPoints; ++i){
         generatePoint();
+    }
+
+    for(let i in Points){
+        let point = Points[i];
+        point.x += Math.cos(point.angle)*Time.deltaTime*point.speed;
+        point.y -= Math.sin(point.angle)*Time.deltaTime*point.speed;
     }
 
 }
