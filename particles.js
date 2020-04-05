@@ -14,6 +14,38 @@ class Point{
     }
 }
 
+let mouseX = 0,mouseY = 0;
+
+
+(function() {
+    document.onmousemove = handleMouseMove;
+    function handleMouseMove(event) {
+        var eventDoc, doc, body;
+
+        event = event || window.event; // IE-ism
+
+        // If pageX/Y aren't available and clientX/Y are,
+        // calculate pageX/Y - logic taken from jQuery.
+        // (This is to support old IE)
+        if (event.pageX == null && event.clientX != null) {
+            eventDoc = (event.target && event.target.ownerDocument) || document;
+            doc = eventDoc.documentElement;
+            body = eventDoc.body;
+
+            event.pageX = event.clientX +
+              (doc && doc.scrollLeft || body && body.scrollLeft || 0) -
+              (doc && doc.clientLeft || body && body.clientLeft || 0);
+            event.pageY = event.clientY +
+              (doc && doc.scrollTop  || body && body.scrollTop  || 0) -
+              (doc && doc.clientTop  || body && body.clientTop  || 0 );
+        }
+
+        // Use event.pageX / event.pageY here
+        mouseX = event.pageX;
+        mouseY = event.pageY;
+    }
+})();
+
 
 const Random = (start,end) => {
     return start + Math.random()*(end - start);
@@ -61,6 +93,7 @@ const Points = {};
 const Canvas = {};
 let MaxPoints = 100;
 const Speed = 100;
+const Radius = 160;
 const EstimatedFPS = 30;
 const MaxDist = 160;
 const Time = {
@@ -149,6 +182,24 @@ function draw(){
 
     ctx.clearRect(0,0,Canvas.width,Canvas.height);
     let point;
+
+    for(let i in Points){
+        let point = Points[i];
+        point.x += Math.cos(point.angle)*Time.deltaTime*point.speed;
+        point.y -= Math.sin(point.angle)*Time.deltaTime*point.speed;
+    }
+
+
+    for(let i in Points){
+        let point = Points[i];
+        let d = Math.sqrt((point.x - mouseX)*(point.x - mouseX) + (point.y - mouseY)*(point.y - mouseY));
+        let dx = (point.x - mouseX)/d,dy = (point.y - mouseY)/d;
+        if(d <= Radius){
+            point.x = Radius*dx + mouseX;
+            point.y = Radius*dy + mouseY;
+        }
+    }
+
     let idToDelete = [];
     for(let i in Points){
         
@@ -192,11 +243,7 @@ function draw(){
         generatePoint();
     }
 
-    for(let i in Points){
-        let point = Points[i];
-        point.x += Math.cos(point.angle)*Time.deltaTime*point.speed;
-        point.y -= Math.sin(point.angle)*Time.deltaTime*point.speed;
-    }
+
 
 }
 
