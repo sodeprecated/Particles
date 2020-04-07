@@ -10,42 +10,11 @@ class Point{
         this.angle = _angle;
         this.speed = _speed;
         this.time = performance.now();
-        this.radius = Random(2,4);
+        this.radius = Random(3,4.5);
     }
 }
 
 let mouseX = 0,mouseY = 0;
-
-
-// (function() {
-//     document.onmousemove = handleMouseMove;
-//     function handleMouseMove(event) {
-//         var eventDoc, doc, body;
-
-//         event = event || window.event; // IE-ism
-
-//         // If pageX/Y aren't available and clientX/Y are,
-//         // calculate pageX/Y - logic taken from jQuery.
-//         // (This is to support old IE)
-//         if (event.pageX == null && event.clientX != null) {
-//             eventDoc = (event.target && event.target.ownerDocument) || document;
-//             doc = eventDoc.documentElement;
-//             body = eventDoc.body;
-
-//             event.pageX = event.clientX +
-//               (doc && doc.scrollLeft || body && body.scrollLeft || 0) -
-//               (doc && doc.clientLeft || body && body.clientLeft || 0);
-//             event.pageY = event.clientY +
-//               (doc && doc.scrollTop  || body && body.scrollTop  || 0) -
-//               (doc && doc.clientTop  || body && body.clientTop  || 0 );
-//         }
-
-//         // Use event.pageX / event.pageY here
-//         mouseX = event.pageX;
-//         mouseY = event.pageY;
-//     }
-// })();
-
 
 const Random = (start,end) => {
     return start + Math.random()*(end - start);
@@ -94,7 +63,7 @@ const Canvas = {};
 let MaxPoints = 100;
 const Speed = 100;
 const Radius = 160;
-const EstimatedFPS = 30;
+const EstimatedFPS = 35;
 const MaxDist = 160;
 const Time = {
     deltaTime:1./EstimatedFPS
@@ -133,19 +102,19 @@ function generatePoint(){
     let x,y; 
     let p;
     if(edge == 0){
-        y = -10;
+        y = -MaxDist - 10;
         x = Math.random()*Canvas.width;
         p = new Point(x,y,Random(Math.PI,2*Math.PI),Random(Speed - Speed*0.2,Speed + Speed*0.2))
     }else if(edge == 1){
-        x = Canvas.width + 10;
+        x = Canvas.width + 10 + MaxDist;
         y = Math.random()*Canvas.height;
         p = new Point(x,y,Random(Math.PI*0.5,1.5*Math.PI),Random(Speed - Speed*0.2,Speed + Speed*0.2))
     }else if(edge == 2){
-        y = Canvas.height + 10;
+        y = Canvas.height + 10 + MaxDist;
         x = Math.random()*Canvas.width;
         p = new Point(x,y,Random(0,Math.PI),Random(Speed - Speed*0.2,Speed + Speed*0.2))
     }else{
-        x = -10;
+        x = -MaxDist - 10;
         y = Math.random()*Canvas.height;
         p = new Point(x,y,Random(-0.5*Math.PI,0.5*Math.PI),Random(Speed - Speed*0.2,Speed + Speed*0.2))
     }
@@ -164,12 +133,11 @@ function setup(){
         generatePoint();
     }
 
-
     for(let i in Points){
-        let p = Points[i];
-        p.x = Random(0,Canvas.width);
-        p.y = Random(0,Canvas.height);
+        Points[i].x = Random(0,Canvas.width);
+        Points[i].y = Random(0,Canvas.height);
     }
+
 }
 
 
@@ -184,68 +152,88 @@ function draw(){
     ctx.clearRect(0,0,Canvas.width,Canvas.height);
     let point;
 
-    for(let i in Points){
-        let point = Points[i];
-        point.x += Math.cos(point.angle)*Time.deltaTime*point.speed;
-        point.y -= Math.sin(point.angle)*Time.deltaTime*point.speed;
-    }
-
-
-    for(let i in Points){
-        let point = Points[i];
-        let d = Math.sqrt((point.x - mouseX)*(point.x - mouseX) + (point.y - mouseY)*(point.y - mouseY));
-        let dx = (point.x - mouseX)/d,dy = (point.y - mouseY)/d;
-        if(d <= Radius){
-            point.x = Radius*dx + mouseX;
-            point.y = Radius*dy + mouseY;
-        }
-    }
-
-    let idToDelete = [];
-    for(let i in Points){
-        
-        point = Points[i];
-        if(performance.now() - point.time > 1000 && (point.x > Canvas.width+10 || point.x < -10 || point.y > Canvas.height + 10 || point.y < -10)){
-            idToDelete.push(i);
-        }
-
-        let k = false;
-        for(let j in Points){
-            //if(k >= 15) continue;
-            if(i == j){
-                k = true;
-                continue;
-            }
-            if(!k) continue;
-            
-            let a = Points[j];
-            let d = Math.sqrt((point.x - a.x)*(point.x - a.x) + (point.y - a.y)*(point.y - a.y));
-            if(d >= MaxDist) continue;
-
-            
-            strokeWidth((1.-d/MaxDist) * 1.5);
-            line(a.x,a.y,point.x,point.y);
-        }
-
-        fill(255,255,255,255);
-        strokeWidth(0);
-        //strokeWidth(point.radius*1);
-        circle(point.x,point.y,point.radius);
-
-
-    }
-
-    for(let i of idToDelete){
-        delete Points[i];
-    }
-
-
     for(let i = Object.keys(Points).length; i < MaxPoints; ++i){
         generatePoint();
     }
 
 
+    let set = [];
+    let left = Infinity,right = -Infinity,top = -Infinity,down = Infinity;
 
+    for(let i in Points){
+        let point = Points[i];
+        
+        point.x += Math.cos(point.angle)*Time.deltaTime*point.speed;
+        point.y -= Math.sin(point.angle)*Time.deltaTime*point.speed;
+
+        left = Math.min(left,point.x);
+        right = Math.max(right,point.x);
+        top = Math.max(top,point.y);
+        down = Math.min(down,point.y);
+
+        set.push({x:point.x,y:point.y,id:point.id});
+    }
+
+    let tree = BuildKDTree(set,{x:left,y:top,width: right - left,height: top - down});
+
+    for(let i of InRadius({x:mouseX,y:mouseY},Radius,tree)){
+        let point = i;
+        let d = Math.sqrt((point.x - mouseX)*(point.x - mouseX) + (point.y - mouseY)*(point.y - mouseY));
+        let dx = (point.x - mouseX)/d,dy = (point.y - mouseY)/d;
+        if(d <= Radius){
+            Points[i.id].x = (Radius+0.0000)*dx + mouseX;
+            Points[i.id].y = (Radius+0.0000)*dy + mouseY;
+        }
+    }
+    const map = new Map();
+
+    let idToDelete = [];
+    for(let i in Points){
+        
+        point = Points[i];
+
+        let checkPoint = function(p){
+            if(p.x > Canvas.width+10 || p.x < -10 || p.y > Canvas.height + 10 || p.y < -10){
+                return true;
+            }
+        }
+
+        if(checkPoint(point) && checkPoint({x:point.x + Math.cos(point.angle)*(MaxDist+20),y:point.y - Math.sin(point.angle)*(MaxDist+20)})){
+            idToDelete.push(i);
+        }
+
+
+        
+
+        for(let j of InRadius(point,MaxDist,tree)){
+            if(j.id == point.id) continue;
+
+
+            //console.log(map.get(`${Math.min(j.id,point.id)}-${Math.min(j.id,point.id)}`));
+
+            if(map.get(`${Math.min(j.id,point.id)}-${Math.max(j.id,point.id)}`) != undefined) continue;
+
+            map.set(`${Math.min(j.id,point.id)}-${Math.max(j.id,point.id)}`,true);
+            let a = j;
+            let d = Math.sqrt((point.x - a.x)*(point.x - a.x) + (point.y - a.y)*(point.y - a.y));
+            
+
+
+            strokeWidth((1.-d/MaxDist) * 1.5);
+            line(a.x,a.y,point.x,point.y);
+
+        }
+
+
+        fill(255,255,255,255);
+        strokeWidth(0);
+        //strokeWidth(point.radius*1);
+        circle(point.x,point.y,point.radius);
+    }
+
+    for(let i of idToDelete){
+        delete Points[i];
+    }
 }
 
 
@@ -306,7 +294,7 @@ window.onresize = () =>{
         mouseX = x;
         mouseY = y;
        // $("#div1").html("(X: "+x+", Y: "+y+")");
-    });
+     });
     });
     }
     Time.deltaTime = (performance.now() - last)*0.001;
