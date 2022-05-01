@@ -1,3 +1,3 @@
 # Particles
 
-Press [this](https://mrdanikus.github.io/Particles/) to see more
+Press [this](https://sodeprecated.github.io/Particles/) to see more
